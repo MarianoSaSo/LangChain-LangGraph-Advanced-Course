@@ -1,184 +1,217 @@
-import hashlib
-from typing import List
-from pathlib import Path
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
+import hashlib #crear IDs únicos
+import shutil # Borrar carpetas
+from typing import List # Para decir “esto es una lista” (tipado)
+from pathlib import Path # Para manejar rutas de archivos de forma inteligente
+from langchain_community.document_loaders import DirectoryLoader, TextLoader # Para cargar documentos
+from langchain_community.vectorstores import Chroma # Para crear la base de datos vectorial
+from langchain_google_genai import GoogleGenerativeAIEmbeddings # Para crear los embeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter # Para dividir los documentos
+from langchain_core.documents import Document # Para crear los documentos
 
+# Importamos las variables de configuración de nuestro archivo externo
 from config import * 
 
 class DocumentProcessor:
-    """Procesador de documentos para el sistema RAG."""
+    """
+    Clase DocumentProcessor: Se encarga de transformar nuestra base de conocimientos
+    (archivos Markdown) en vectores almacenables en una base de datos vectorial
+    utilizando Google Gemini Embeddings.
+    """
     
-    def __init__(self, docs_path: str = "docs", chroma_path: str = "./chroma_db"):
+    def __init__(self, docs_path: str = DOCS_PATH, chroma_path: str = CHROMADB_PATH):
+        # 1. Rutas de carpetas: Las convertimos a objetos Path para que funcionen en cualquier SO (Windows/Mac/Linux)
         self.docs_path = Path(docs_path)
         self.chroma_path = Path(chroma_path)
-        self.embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL)
+        
+        # 2. Motor de Inteligencia: Instanciamos el modelo de Google que convertirá texto en 
+        # listas de números (vectores) llamadas 'embeddings'.
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDINGS_MODEL)
+        
+        # 3. La "Cizalla" (Splitter): Define cómo cortaremos los textos largos.
+        # - chunk_size: ¿Cuantas letras máximo por trozo? (1000)
+        # - chunk_overlap: ¿Cuantas letras repetimos entre trozos para no perder el hilo? (200)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
             length_function=len,
+            # Lista de separadores preferidos: Primero intenta por párrafos, luego por frases, etc.
             separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""]
         )
         
     def load_documents(self) -> List[Document]:
-        """Carga documentos markdown del directorio docs."""
-        print(f"📚 Cargando documentos desde {self.docs_path}")
+        """Carga documentos markdown del directorio docs y enriquece sus metadatos."""
+        print(f"Cargando documentos desde {self.docs_path}")
         
-        # Cargar archivos markdown
+        # DirectoryLoader escanea una carpeta entera buscando patrones (glob)
+        # Usamos TextLoader porque los .md son texto plano
         loader = DirectoryLoader(
-            str(self.docs_path),
-            glob="*.md",
-            loader_cls=TextLoader,
+            str(self.docs_path), # convierte esto a texto (string)
+            glob="*.md", # solo quiero archivos .md
+            loader_cls=TextLoader, # usa esta clase para abrir cada archivo, en este caso como texto plano
             loader_kwargs={"encoding": "utf-8"}
         )
         
         documents = loader.load()
+
+        # un documento dentro de la lista de documentos tienes este aspecto:
+        # Document(
+        #     page_content='...texto del archivo...\n\n', 
+        #     metadata={
+        #         'source': '...ruta del archivo...\n\n'}
+        # )
         
-        # Enriquecer metadatos
+        # Enriquecimiento de metadatos: fundamental para que la IA tenga contexto
         for doc in documents:
-            filename = Path(doc.metadata["source"]).stem
+            filename = Path(doc.metadata["source"]).stem # .stem elimina la extension del archivo
             doc.metadata.update({
-                "filename": filename,
+                "filename": filename, # nombre del archivo sin extension
                 "doc_type": self._get_doc_type(filename),
+                # Generamos un ID único basado en el contenido
                 "doc_id": self._generate_doc_id(doc.page_content)
             })
         
-        print(f"✅ Cargados {len(documents)} documentos")
+        print(f"Cargados {len(documents)} documentos")
         return documents
     
     def _get_doc_type(self, filename: str) -> str:
-        """Determina el tipo de documento basado en el nombre."""
-        if "faq" in filename.lower():
-            return "faq"
-        elif "manual" in filename.lower():
-            return "manual"
-        elif "troubleshooting" in filename.lower():
-            return "troubleshooting"
+        """
+        Función auxiliar: Analiza el nombre del archivo para etiquetar el documento.
+        Esto permite que la IA sepa si está leyendo una FAQ o un Manual.
+        """
+        name = filename.lower()
+        if "faq" in name:
+            return "Preguntas Frecuentes"
+        elif "manual" in name:
+            return "Manual"
+        elif "resolucion" in name or "troubleshooting" in name:
+            return "Resolución de Problemas"
         else:
-            return "general"
+            return "General"
     
     def _generate_doc_id(self, content: str) -> str:
-        """Genera un ID único para el documento."""
+        """Usa una función de hash para crear un ID único por contenido."""
         return hashlib.md5(content.encode()).hexdigest()[:8]
     
     def split_documents(self, documents: List[Document]) -> List[Document]:
-        """Divide documentos en chunks más pequeños."""
-        print("✂️  Dividiendo documentos en chunks...")
+        """
+        Paso 2: Cortar los documentos originales en trozos (chunks).
+        Esto es vital para no saturar la memoria del modelo y ser más precisos.
+        """
+        print("Dividiendo documentos en chunks...")
         
         chunks = self.text_splitter.split_documents(documents)
         
-        # Agregar metadatos de chunk
+        # Guardamos metadatos extras en cada trozo para tener un control total
         for i, chunk in enumerate(chunks):
             chunk.metadata.update({
-                "chunk_id": i,
-                "chunk_size": len(chunk.page_content)
+                "chunk_id": i,                # ¿Qué trozo de la secuencia es este?
+                "chunk_size": len(chunk.page_content) # ¿Cuanto mide exactamente este trozo?
             })
         
-        print(f"✅ Creados {len(chunks)} chunks")
+        print(f"Creados {len(chunks)} chunks")
         return chunks
     
     def create_vectorstore(self, documents: List[Document]) -> Chroma:
-        """Crea el vectorstore con ChromaDB."""
-        print("🔄 Creando vectorstore con ChromaDB...")
+        """
+        Paso 3: Crear la base de datos de vectores (ChromaDB).
+        Aquí es donde el texto se convierte finalmente en números y se guarda en disco.
+        """
+        print("Creando vectorstore con ChromaDB y Gemini Embeddings...")
         
-        # Limpiar directorio anterior si existe
+        # Seguridad: Si ya existe una carpeta de base de datos, la borramos para no mezclar datos viejos.
         if self.chroma_path.exists():
-            import shutil
             shutil.rmtree(self.chroma_path)
+            print(f"Directorio anterior {self.chroma_path} eliminado")
         
-        # Crear vectorstore
+        # Chroma.from_documents hace 3 cosas:
+        # 1. Toma los textos
+        # 2. Llama a Gemini para vectorizarlos
+        # 3. Los guarda en la carpeta 'chroma_db'
         vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
             persist_directory=str(self.chroma_path),
-            collection_name="helpdesk_knowledge"
+            collection_name="helpdesk_knowledge" 
         )
         
-        print(f"✅ Vectorstore creado en {self.chroma_path}")
-        print(f"📊 Total de vectores: {len(documents)}")
-        
+        print(f"Vectorstore creado exitosamente")
         return vectorstore
     
     def load_existing_vectorstore(self) -> Chroma:
-        """Carga vectorstore existente."""
+        """Carga una base de datos que ya ha sido creada previamente."""
         if not self.chroma_path.exists():
             raise FileNotFoundError(f"Vectorstore no encontrado en {self.chroma_path}")
         
-        vectorstore = Chroma(
+        return Chroma(
             persist_directory=str(self.chroma_path),
             embedding_function=self.embeddings,
             collection_name="helpdesk_knowledge"
         )
-        
-        return vectorstore
     
     def setup_rag_system(self, force_rebuild: bool = False):
-        """Configura el sistema RAG completo."""
-        print("🚀 Configurando sistema RAG...")
+        """
+        El 'Director de Orquesta': Une todas las funciones anteriores.
+        Parametro force_rebuild: Si es True, borra todo y empieza de cero. Si es False, intenta cargar lo que ya hay.
+        """
+        print("Configurando sistema RAG con Google Gemini...")
         
-        # Verificar si ya existe y no forzar rebuild
+        # 1. ¿Ya tenemos la base de datos creada?
         if self.chroma_path.exists() and not force_rebuild:
-            print("📦 Vectorstore existente encontrado")
+            print("Cargando base de datos vectorial existente...")
             return self.load_existing_vectorstore()
         
-        # Cargar y procesar documentos
+        # 2. Si no, ejecutamos toda la tubería (Pipeline) -> Carga -> División -> Vectorización
         documents = self.load_documents()
         if not documents:
-            print("⚠️  No se encontraron documentos para procesar")
+            print("No se encontraron documentos en la ruta especificada.")
             return None
-        
-        # Dividir documentos
+            
         chunks = self.split_documents(documents)
-        
-        # Crear vectorstore
         vectorstore = self.create_vectorstore(chunks)
         
-        print("✅ Sistema RAG configurado exitosamente")
+        print("Sistema RAG configurado y listo")
         return vectorstore
     
     def test_search(self, vectorstore: Chroma, query: str = "resetear contraseña"):
-        """Prueba la funcionalidad de búsqueda."""
-        print(f"\n🔍 Probando búsqueda: '{query}'")
+        """Realiza una búsqueda de prueba para validar el sistema."""
+        print(f"\nProbando búsqueda: '{query}'")
         
+        # k=3 nos devuelve los 3 fragmentos más similares
         results = vectorstore.similarity_search(query, k=3)
         
         for i, doc in enumerate(results, 1):
-            print(f"\n📄 Resultado {i}:")
+            print(f"\nResultado {i}:")
             print(f"Tipo: {doc.metadata.get('doc_type', 'unknown')}")
             print(f"Archivo: {doc.metadata.get('filename', 'unknown')}")
-            print(f"Contenido: {doc.page_content[:200]}...")
+            print(f"Contenido: {doc.page_content[:150]}...")
         
         return results
 
-
 def main():
-    """Función principal para configurar RAG."""
-    print("🎧 Configuración RAG - Helpdesk 2.0")
-    print("=" * 40)
+    """Función principal de ejecución del script setup_rag.py"""
+    print("="*50)
+    print("CONFIGURACION SISTEMA RAG - GOOGLE GEMINI")
+    print("="*50)
     
-    # Configurar procesador
-    processor = DocumentProcessor(docs_path=DOCS_PATH, chroma_path=CHROMADB_PATH)
+    # 1. Instanciamos el procesador
+    processor = DocumentProcessor()
     
-    # Configurar sistema RAG
-    vectorstore = processor.setup_rag_system(force_rebuild=True)
+    # 2. Configuramos el sistema (forzamos rebuild la primera vez)
+    vectorstore = processor.setup_rag_system(force_rebuild=False)
     
     if vectorstore:
-        # Probar búsquedas
+        # 3. Realizamos búsquedas de validación
         test_queries = [
-            "resetear contraseña",
-            "error 500",
-            "cancelar suscripción",
-            "aplicación lenta"
+            "¿Cómo reseteo mi contraseña?",
+            "Tengo un error 500",
+            "Quiero cancelar mi suscripción"
         ]
         
         for query in test_queries:
             processor.test_search(vectorstore, query)
     
-    print("\n✅ Configuración completada")
-
+    print("\nProceso de configuración finalizado con éxito.")
 
 if __name__ == "__main__":
     main()
+    

@@ -1,6 +1,6 @@
 from typing import TypedDict, Optional, List, Annotated, Dict, Any
 from operator import add
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from rag_system import VectorRAGSystem
 from config import *
 from langchain_core.prompts import ChatPromptTemplate
@@ -22,10 +22,11 @@ class HelpdeskState(TypedDict):
     historial: Annotated[List[str], add]
 
 class HelpdeskGraph:
-    """Grafo del sistema Helpdesk."""
+    """Grafo del sistema Helpdesk con Google Gemini."""
 
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+        # Usamos el modelo de Gemini definido en config.py
+        self.llm = ChatGoogleGenerativeAI(model=CHAT_MODEL, temperature=0.1)
         self.rag = VectorRAGSystem(chroma_path=CHROMADB_PATH)
         self.graph = None
 
@@ -39,8 +40,8 @@ class HelpdeskGraph:
             "fuentes": resultado["fuentes"],
             "contexto_rag": resultado["respuesta"],
             "historial": [
-                f"RAG ejecutado con MultiQueryRetriever",
-                f"Confianza: {resultado["confianza"]}",
+                f"RAG ejecutado con MultiQueryRetriever (Gemini)",
+                f"Confianza: {resultado['confianza']}",
                 f"Fuentes consultadas: {len(resultado['fuentes'])}"
             ]
         }
@@ -56,7 +57,7 @@ class HelpdeskGraph:
 
 CONSULTA DEL USUARIO: {consulta}
 
-INFORMACIÓN ENCONTRADA EN LA BASE DE CONOCIMIENTO:
+INFORMACIÓN ENCONTRADA EN LA BASE DE CONOCIMIENTO (GEMINI RAG):
 {contexto_rag}
 
 CONFIANZA DE LA BÚSQUEDA: {confianza}
@@ -141,7 +142,7 @@ Responde solo con "automatico" o "escalado" y una breve justificación (máximo 
 
         return {
             "respuesta_final": respuesta_final,
-            "historial": ["Respuesta final generada automaticamente."]
+            "historial": ["Respuesta final generada automaticamente por Gemini."]
         }
 
     # Funciones de enrutamiento

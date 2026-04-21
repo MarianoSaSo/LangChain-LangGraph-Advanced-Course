@@ -27,7 +27,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -50,8 +49,13 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# ChromaDB
-chroma_db/
-*.bin
-chroma_db/
+# --- ESPECÍFICO DEL PROYECTO HELPDESK ---
+
+# Bases de Datos Locales (Persistencia de LangGraph)
+*.db
+*.db-shm
+*.db-wal
+
+# Bases de Datos Vectoriales y RAG
+**/chroma_db/
 *.bin

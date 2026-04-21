@@ -1,9 +1,8 @@
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from pathlib import Path
 import logging
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from typing import List, Dict, Any
 
@@ -11,12 +10,13 @@ from config import *
 
 
 class VectorRAGSystem:
-    """Sistema RAG avanzado con ChromaDB y MultiQueryRetriever."""
+    """Sistema RAG avanzado con ChromaDB y MultiQueryRetriever usando Google Gemini."""
     
-    def __init__(self, chroma_path: str = "chroma_db"):
+    def __init__(self, chroma_path: str = CHROMADB_PATH):
         self.chroma_path = Path(chroma_path)
-        self.embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL)
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        # Usamos los modelos de Google definidos en config.py
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDINGS_MODEL)
+        self.llm = ChatGoogleGenerativeAI(model=CHAT_MODEL, temperature=0)
         self.vectorstore = None
         self.retriever = None
         
@@ -39,7 +39,7 @@ class VectorRAGSystem:
                 collection_name="helpdesk_knowledge"
             )
             
-            # Crear MultiQueryRetriever
+            # Crear MultiQueryRetriever usando el LLM de Gemini
             self.retriever = MultiQueryRetriever.from_llm(
                 retriever=self.vectorstore.as_retriever(
                     search_type="similarity",
@@ -49,7 +49,7 @@ class VectorRAGSystem:
                 prompt=self._get_multi_query_prompt()
             )
             
-            print("✅ VectorRAGSystem inicializado correctamente")
+            print("✅ VectorRAGSystem (Gemini) inicializado correctamente")
             
         except Exception as e:
             print(f"❌ Error cargando vectorstore: {str(e)}")
