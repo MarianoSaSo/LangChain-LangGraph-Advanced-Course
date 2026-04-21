@@ -10,16 +10,16 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 
 # Definicion del Estado
 class HelpdeskState(TypedDict):
-    consulta: str
-    categoria: str # "automatica" o "escalada"
-    respuesta_rag: Optional[str]
-    confianza: float
-    fuentes: List[str]
-    contexto_rag: Optional[str]
-    requiere_humano: bool
-    respuesta_humano: Optional[str]
-    respuesta_final: Optional[str]
-    historial: Annotated[List[str], add]
+    consulta: str # La duda o problema inicial que escribe el usuario
+    categoria: str # Clasificación: "automatico" (responde la IA) o "escalado" (va a un humano)
+    respuesta_rag: Optional[str] # La respuesta técnica generada por el sistema RAG (si existe)
+    confianza: float # Nivel de seguridad de la búsqueda (de 0.0 a 1.0)
+    fuentes: List[str] # Lista de archivos (.md) de donde se sacó la información
+    contexto_rag: Optional[str] # Texto bruto recuperado de la base de datos para análisis
+    requiere_humano: bool # Flag que indica si el ticket debe ser pausado para un agente
+    respuesta_humano: Optional[str] # Texto que escribe el agente humano durante la interrupción
+    respuesta_final: Optional[str] # La contestación definitiva que verá el usuario
+    historial: Annotated[List[str], add] # Registro de todos los pasos y nodos recorridos (acumulativo)
 
 class HelpdeskGraph:
     """Grafo del sistema Helpdesk con Google Gemini."""
