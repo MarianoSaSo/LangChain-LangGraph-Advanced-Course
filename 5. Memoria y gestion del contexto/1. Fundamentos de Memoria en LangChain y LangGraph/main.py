@@ -51,7 +51,7 @@ try:
         print(f"Asistente: {respuesta.content}")
 
         # ACTUALIZACIÓN DEL HISTORIAL
-        # Para que el LLM "recuerde" en la siguiente iteración, debemos guardar ambos mensajes
+        # Para que el LLM "recuerde" en la siguiente iteración, debemos guardar ambos mensajes anadiendolos a la lista de mensajes.
         history.extend([
             HumanMessage(content=user_input),
             AIMessage(content=respuesta.content)
