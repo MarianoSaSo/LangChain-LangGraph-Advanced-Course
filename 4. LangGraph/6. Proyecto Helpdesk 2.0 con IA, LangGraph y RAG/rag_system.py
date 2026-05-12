@@ -30,7 +30,7 @@ class VectorRAGSystem:
         """Carga el vectorstore de ChromaDB."""
         try:
             if not self.chroma_path.exists():
-                print(f"⚠️ Vectorstore no encontrado en {self.chroma_path}")
+                print(f"[ADVERTENCIA] Vectorstore no encontrado en {self.chroma_path}")
                 return
                 
             self.vectorstore = Chroma(
@@ -49,10 +49,10 @@ class VectorRAGSystem:
                 prompt=self._get_multi_query_prompt()
             )
             
-            print("✅ VectorRAGSystem (Gemini) inicializado correctamente")
+            print("[OK] VectorRAGSystem (Gemini) inicializado correctamente")
             
         except Exception as e:
-            print(f"❌ Error cargando vectorstore: {str(e)}")
+            print(f"[ERROR] Error cargando vectorstore: {str(e)}")
             self.vectorstore = None
             self.retriever = None
     
@@ -128,7 +128,7 @@ Versiones alternativas:"""
             }
             
         except Exception as e:
-            print(f"❌ Error en búsqueda RAG: {str(e)}")
+            print(f"[ERROR] En búsqueda RAG: {str(e)}")
             return {
                 "respuesta": f"Error interno en la búsqueda: {str(e)}",
                 "confianza": 0.0,
