@@ -25,7 +25,7 @@ En la lección anterior usamos **`RunnableWithMessageHistory`**: LangChain envue
 
 La documentación y el ecosistema **recomiendan encarecidamente** usar **LangGraph** cuando quieres **memoria, checkpoints y flujos** más controlables (incluso si la memoria es **solo en RAM** y se pierde al cerrar el programa).
 
-> **Nota sobre la transcripción del vídeo:** a veces se escucha “Launchy” o “Landgraf”. En este material nos referimos siempre a **LangChain** y **LangGraph**.
+
 
 ---
 
