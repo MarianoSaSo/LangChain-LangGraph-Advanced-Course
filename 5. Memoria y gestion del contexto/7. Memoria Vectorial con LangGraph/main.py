@@ -82,8 +82,8 @@ def guardar_memoria(texto: str) -> None:
     """
     try:
         collection.add(
-            documents=[texto],  # Lista: Chroma admite varios documentos a la vez
-            ids=[str(uuid.uuid4())],  # ID obligatorio; si no pones, Chroma inventa uno
+            documents=[texto],  # Lista: Chroma admite varios documentos a la vez, le pasamos los documentos que queremos guardar
+            ids=[str(uuid.uuid4())],  # ID obligatorio; si no pones, Chroma inventa uno, es un identificador unico para el documento
         )
         print(f"[+] Guardado en memoria: {texto}")
     except Exception as e:
@@ -106,9 +106,9 @@ def buscar_memoria(consulta: str, k: int = 3) -> list[str]:
             n_results=k,
         )
         # results["documents"] es lista de listas: [ [doc1, doc2, ...] ]
-        if results.get("documents") and results["documents"][0]:
+        if results.get("documents") and results["documents"][0]: # Nos quedamos con el primer documento de la lista de documentos, que tiene 3 resultados
             return results["documents"][0]
-        return []
+        return [] # Si no hay documentos, devolvemos una lista vacia
     except Exception:
         return []
 
