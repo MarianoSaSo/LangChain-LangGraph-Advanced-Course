@@ -30,18 +30,22 @@ class ExtractedMemory(BaseModel):
     """Modelo para memoria extraida estructurada."""
     category: str = Field(description="Categoria: personal, profesional, preferencias, hecho_importantes")
     content: str = Field(description="Contenido de la memoria")
-    importance: int = Field(description="Importancia del 1 al 5", ge=1, le=5)
+    importance: int = Field(description="Importancia del 1 al 5", ge=1, le=5) # Para forzar ge = greater than or equal to, le = less than or equal to
 
+
+# La clase que se va a encargar de gestionar esa memoria transversal y almacenarla en una base de datos vectorial.
+# Vamos a denominarla Modern Memory Manager.
 class ModernMemoryManager:
 
     def __init__(self, user_id: str):
-        self.user_id = user_id
-        self.user_dir = os.path.join(USERS_DIR, user_id)
-        os.makedirs(self.user_dir, exist_ok=True)
+        self.user_id = user_id # ID del usuario, es el nombre del directorio de usuario
+        self.user_dir = os.path.join(USERS_DIR, user_id) # Directorio del usuario, es el directorio de usuario
+        os.makedirs(self.user_dir, exist_ok=True) # Crea el directorio del usuario si no existe
 
         # Base de datos vectorial chromadb para memoria transversal
+        # Cada usuario tendra su propia base de datos vectorial, es decir, cada usuario tendra su propia memoria transversal, dentro de la carpeta user_dir
         self.chromadb_path = os.path.join(self.user_dir, "chromadb")
-        self._init_vector_db()
+        self._init_vector_db() # Inicializa la base de datos vectorial chromadb
 
         # Sistema de extraccion inteligente de memoria transversal
         self._init_extraction_system()

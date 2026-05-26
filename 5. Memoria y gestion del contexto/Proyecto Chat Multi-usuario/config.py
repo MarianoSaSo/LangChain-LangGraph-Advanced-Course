@@ -6,6 +6,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data") # Aqui es donde se guardaran los datos
 USERS_DIR = os.path.join(BASE_DIR, "users") # Aqui es donde se guardaran los usuarios, sera como la base de datos de los usuarios
 
 # Crar directorios si no existen
+# Cada vez que se ejecute el programa, se creara el directorio si no existe
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(USERS_DIR, exist_ok=True)
 
