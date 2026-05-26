@@ -6,7 +6,7 @@ from datetime import datetime
 from typing_extensions import TypedDict, Annotated
 import chromadb
 # import oficial del curso >>> from langchain_chroma import Chroma
-import langchain_community.vectorstores.Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -54,7 +54,7 @@ class ModernMemoryManager:
         self.langgraph_db_path = os.path.join(self.user_dir, "langgraph_memory.db")
 
 
-    def _init_vector_db(self):
+    def _init_vector_db(self): # Esto define un método privado de la clase. El _ al inicio es una convención que significa: “Este método es interno”.
         """Inicializa la base de datos vectorial chromadb"""
         try:
             self.vectorstore = Chroma(
@@ -62,6 +62,7 @@ class ModernMemoryManager:
                 embedding_function=OpenAIEmbeddings(model="text-embedding-3-large"),
                 persist_directory=self.chromadb_path
             )
+            # self.client sirve para conectarte directamente con ChromaDB. Es el objeto que te permite: crear colecciones,obtener colecciones, eliminar colecciones y administrar colecciones
 
             self.client = chromadb.PersistentClient(path=self.chromadb_path)
             try:
