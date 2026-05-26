@@ -5,7 +5,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from typing_extensions import TypedDict, Annotated
 import chromadb
-from langchain_chroma import Chroma
+# import oficial del curso >>> from langchain_chroma import Chroma
+import langchain_community.vectorstores.Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -21,8 +22,10 @@ class MemoryState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     vector_memories: List[str] # IDs de memorias vectoriales activas
     user_profile: Dict[str, Any] # Perfil del usuario
-    last_memory_extraction: Optional[str] # Ultimo mensaje procesado para memorias
+    last_memory_extraction: Optional[str] # Ultimo mensaje enviado por el usuario y procesado para memorias
 
+# Modelo para la memoria extraida estructurada, es para que cada mensaje del usuario se pueda determinar su categoria y su importancia
+# El llm sera el que determine la categoria y la importancia de la memoria y decida si merece ser guardada en la memoria vectorial.
 class ExtractedMemory(BaseModel):
     """Modelo para memoria extraida estructurada."""
     category: str = Field(description="Categoria: personal, profesional, preferencias, hecho_importantes")
