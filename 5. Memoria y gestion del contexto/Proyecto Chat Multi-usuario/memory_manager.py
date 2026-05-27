@@ -111,7 +111,7 @@ Si no contiene información relevante para recordar, responde con categoría "no
     def get_user_chats(self):
         """Obtiene todos los chats del usuario."""
         try:
-            # Si no existe archivo de metadatos, retornar vacio
+            # Si no existe archivo de metadatos del chat, retornar vacio
             chats_meta_file = os.path.join(self.user_dir, "chats_meta.json")
             if not os.path.exists(chats_meta_file):
                 return []
@@ -120,7 +120,7 @@ Si no contiene información relevante para recordar, responde con categoría "no
             with open(chats_meta_file, 'r', encoding='utf-8') as f:
                 chats_data = json.load(f)
 
-            # Ordenar por ultima actualizacion
+            # Ordenar por ultima actualizacion, reverse true para que el ultimo chat sea el primero.
             chats_data.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
             return chats_data
         
@@ -133,7 +133,7 @@ Si no contiene información relevante para recordar, responde con categoría "no
         try:
             chats_meta_file = os.path.join(self.user_dir, "chats_meta.json")
             with open(chats_meta_file, 'w', encoding='utf-8') as f:
-                json.dump(chats_data, f, indent=2, ensure_ascii=False)
+                json.dump(chats_data, f, indent=2, ensure_ascii=False) #Guarda chats_data dentro del archivo f
 
         except Exception as e:
             print(f"Error guardando metadatos de chats {e}")
