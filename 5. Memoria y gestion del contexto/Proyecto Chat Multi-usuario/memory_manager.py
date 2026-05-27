@@ -67,7 +67,7 @@ class ModernMemoryManager:
             self.client = chromadb.PersistentClient(path=self.chromadb_path)
             try:
                 self.collection = self.client.get_collection(f"memoria_{self.user_id}")
-            except:
+            except: # En el caso de que no exista la coleccion, la crea
                 self.collection = self.client.create_collection(f"memoria_{self.user_id}")
 
         except Exception as e:
@@ -79,7 +79,7 @@ class ModernMemoryManager:
         """Inicializa el sistema de extraccion inteligente de memoria transversal."""
         try:
             self.extraction_llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
-            self.memory_parser = PydanticOutputParser(pydantic_object=ExtractedMemory)
+            self.memory_parser = PydanticOutputParser(pydantic_object=ExtractedMemory)# Para que cuando el llm extraiga la informacion, se pueda estructurar y guardar en la base de datos vectorial de una forma particular .
 
             self.extraction_template = PromptTemplate(
                 template="""Analiza el siguiente mensaje del usuario y determina si contiene información importante que deba recordarse.
@@ -99,7 +99,7 @@ Si no contiene información relevante para recordar, responde con categoría "no
                 input_variables=["user_message"],
                 partial_variables={"format_instructions": self.memory_parser.get_format_instructions()}
             )
-
+            # Crear la cadena de extraccion, es decir, la cadena de procesamiento de la informacion que se va a extraer.
             self.extraction_chain = self.extraction_template | self.extraction_llm | self.memory_parser
         
         except Exception as e:
