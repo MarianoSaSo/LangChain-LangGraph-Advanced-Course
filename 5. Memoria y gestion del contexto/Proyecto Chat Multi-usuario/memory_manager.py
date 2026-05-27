@@ -57,6 +57,7 @@ class ModernMemoryManager:
     def _init_vector_db(self): # Esto define un método privado de la clase. El _ al inicio es una convención que significa: “Este método es interno”.
         """Inicializa la base de datos vectorial chromadb"""
         try:
+            # Al poner self. hacemos que la variable vectorstore sea un atributo de la clase ModernMemoryManager y despues pueda usarse en otros metodos. eso en lo que ocurre con el llm extractor que instanciamos mas abajo
             self.vectorstore = Chroma(
                 collection_name=f"memoria_{self.user_id}",
                 embedding_function=OpenAIEmbeddings(model="text-embedding-3-large"),
