@@ -1,4 +1,9 @@
 import os
+from dotenv import find_dotenv, load_dotenv
+
+# Carga variables de entorno desde el .env del proyecto/curso.
+# Esto evita errores de OPENAI_API_KEY al crear ChatOpenAI/OpenAIEmbeddings.
+load_dotenv(find_dotenv())
 
 # Configuracion de directorios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Obtiene el directorio base o raiz del archivo actual
