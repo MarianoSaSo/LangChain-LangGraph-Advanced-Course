@@ -2,10 +2,10 @@ from langchain_core.prompts import ChatPromptTemplate
 
 chat_prompt = ChatPromptTemplate.from_messages([
     ("system", "Eres un traductor del español al inglés muy preciso."),
-    ("human", "{texto}")
+    ("human", "{texto_input}")
 ])
 
-mensajes = chat_prompt.format_messages(texto="Hola mundo, ¿cómo estás?")
+mensajes = chat_prompt.format_messages(texto_input="Hola mundo, ¿cómo estás?")
 
 for m in mensajes:
     print(f"{type(m)}: {m.content}")
