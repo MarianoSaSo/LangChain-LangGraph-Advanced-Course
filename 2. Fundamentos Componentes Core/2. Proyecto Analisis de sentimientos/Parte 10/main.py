@@ -21,7 +21,7 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6)
 structured_llm = llm.with_structured_output(AnalisisTexto)
 
 # 4. Invocación del modelo con una reseña de prueba
-texto_de_prueba = "Me encantó la nueva película de acción. Tiene muchos efectos especiales y emoción."
+texto_de_prueba = "Me encantó la nueva película de Pokemon. Tiene muchos efectos especiales y emoción. Squirtle es la bomba y me encanta como lo han representado "
 
 # ¡Fíjate que ya no le pedimos que conteste en JSON en el prompt!
 resultado = structured_llm.invoke(f"Analiza el siguiente texto: {texto_de_prueba}")
