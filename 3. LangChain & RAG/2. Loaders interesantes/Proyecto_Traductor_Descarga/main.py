@@ -1,49 +1,61 @@
-import subprocess
-import whisper
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.tools import tool
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from dotenv import load_dotenv
 
-YOUTUBE_URL = "https://www.youtube.com/watch?v=hmjfuuuRRYU"
+from tools import pipeline as real_pipeline
 
-def download_audio(url: str, output_name="audio.mp3"):
-    print("⬇️ Descargando audio...")
+load_dotenv()
 
-    command = [
-        "yt-dlp",
-        "-x",
-        "--audio-format", "mp3",
-        "-o", output_name,
-        url
-    ]
 
-    subprocess.run(command, check=True)
+# 🔧 TOOL
+@tool
+def youtube_tool(url: str) -> str:
+    """
+    Descarga audio de YouTube y devuelve la transcripción de la canción.
+    """
+    return real_pipeline(url)
 
-    return output_name
 
-def transcribe_audio(audio_path: str):
-    print("🧠 Cargando Whisper...")
+# 🤖 LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    model = whisper.load_model("medium")
+tools = [youtube_tool]
 
-    print("🎙️ Transcribiendo...")
 
-    result = model.transcribe(audio_path)
+# 🧠 PROMPT CORRECTO
+prompt = ChatPromptTemplate.from_messages([
+    ("system",
+     "Eres un traductor de canciones. "
+     "Siempre que recibas una URL debes usar la herramienta. "
+     "Con el resultado debes: "
+     "1. traducir la letra al español "
+     "2. deducir el título de la canción "
+     "3. devolver resultado limpio"),
 
-    text = result["text"]
+    ("human", "{input}"),
 
-    # guardar archivo
-    with open("transcripcion.txt", "w", encoding="utf-8") as f:
-        f.write(text)
+    MessagesPlaceholder("agent_scratchpad"),
+])
 
-    return text
 
-def pipeline(url: str):
-    audio_file = download_audio(url)
-    text = transcribe_audio(audio_file)
+# 🧠 AGENTE
+agent = create_tool_calling_agent(llm, tools, prompt)
 
-    print("\n====================")
-    print("TRANSCRIPCIÓN FINAL")
-    print("====================\n")
-    print(text)
+executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True
+)
 
 
 if __name__ == "__main__":
-    pipeline(YOUTUBE_URL)
+    url = "https://www.youtube.com/watch?v=hmjfuuuRRYU"
+
+    result = executor.invoke({
+        "input": url
+    })
+
+    print("\n====================")
+    print(result["output"])
